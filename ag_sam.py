@@ -2,9 +2,11 @@ import os
 import pickle
 import torch
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
+from tqdm import tqdm
 from constants import Constants as const
 from sam2.build_sam import build_sam2_video_predictor
 
@@ -255,6 +257,7 @@ class AgSam(Dataset):
         #     self.show_mask((out_mask_logits[0] > 0.0).cpu().numpy(), plt.gca(), obj_id=out_obj_ids[0])
         #     plt.savefig(f"output_{video_id}_{obj_id}_{frame_number}.png")
 
+        video_segments = {"video_id": video_id[:-4]}  # video_segments contains the per-frame segmentation results
         for obj_id, obj_details in object_id_map.items():
             self._sam_predictor.reset_state(inference_state)
             # Remove .png extension from the frame name
@@ -268,27 +271,28 @@ class AgSam(Dataset):
                 box=bbox,
             )
 
-            video_segments = {}  # video_segments contains the per-frame segmentation results
+            video_object_segments = {}  # video_object_segments contains the per-frame segmentation results
             for out_frame_idx, out_obj_ids, out_mask_logits in self._sam_predictor.propagate_in_video(inference_state):
-                video_segments[out_frame_idx] = {
+                video_object_segments[out_frame_idx] = {
                     out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
                     for i, out_obj_id in enumerate(out_obj_ids)
                 }
 
+            video_segments[obj_id] = video_object_segments
+
             # render the segmentation results every few frames
-            plt.close("all")
-            for out_frame_idx in list(video_segments.keys()):
-                plt.figure(figsize=(6, 4))
-                plt.title(f"frame {out_frame_idx}")
-                out_frame_name = "%06d.png" % out_frame_idx
-                frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
-                plt.imshow(Image.open(frame_path))
-                for out_obj_id, out_mask in video_segments[out_frame_idx].items():
-                    self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
-                plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
+            # plt.close("all")
+            # for out_frame_idx in list(video_object_segments.keys()):
+            #     plt.figure(figsize=(6, 4))
+            #     plt.title(f"frame {out_frame_idx}")
+            #     out_frame_name = "%06d.png" % out_frame_idx
+            #     frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
+            #     plt.imshow(Image.open(frame_path))
+            #     for out_obj_id, out_mask in video_object_segments[out_frame_idx].items():
+            #         self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+            #     plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
 
-
-        return frame_names
+        return video_segments
 
 
 def cuda_collate_fn(batch):
@@ -297,6 +301,27 @@ def cuda_collate_fn(batch):
 
     """
     return batch[0]
+
+
+def save_dict_to_pkl(dictionary, file_path):
+    """
+    Save a dictionary to a .pkl file.
+
+    :param dictionary: The dictionary to save.
+    :param file_path: The path to the .pkl file.
+    """
+    with open(file_path, 'wb') as file:
+        pickle.dump(dictionary, file)
+
+def process_data(phase, mode, dataloader, dataset):
+    file_directory_path = f"/data/rohith/ag/segmentation/{phase}/{mode}"
+    if not os.path.exists(file_directory_path):
+        os.makedirs(file_directory_path)
+
+    for i, video_segments in enumerate(tqdm(dataloader, desc="Training Progress")):
+        video_id = video_segments["video_id"]
+        file_path = os.path.join(file_directory_path, f"{video_id}.pkl")
+        save_dict_to_pkl(video_segments, file_path)
 
 
 def main(mode):
@@ -333,12 +358,17 @@ def main(mode):
         pin_memory=False
     )
 
-    object_classes = train_dataset.object_classes
+    # Train - Mode
+    print("-----------------------------------------------------------------------")
+    print(f"Processing Train - {mode} dataset")
+    print("-----------------------------------------------------------------------")
+    process_data("train", mode, dataloader_train, train_dataset)
 
-
-    for i, data in enumerate(dataloader_train):
-        print(data)
-        # break
+    # Test - Mode
+    print("-----------------------------------------------------------------------")
+    print(f"Processing Test - {mode} dataset")
+    print("-----------------------------------------------------------------------")
+    process_data("test", mode, dataloader_test, test_dataset)
 
 
 if __name__ == '__main__':
