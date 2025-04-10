@@ -228,17 +228,64 @@ class AgSam(Dataset):
 
         # 3. Use SAMv2 for each object individually and get the mask starting from the first frame it appears in the video using the bbox provided.
         # a. Prepare the input for SAMv2
-        video_dir = os.path.join(self._frames_path, video_id)
+        video_dir = os.path.join("/data/rohith/ag/videos", video_id)
         inference_state = self._sam_predictor.init_state(video_path=video_dir)
 
         # b. Run SAMv2 for each object
-        for obj_id, obj_details in object_id_map.items():
-            # Reset the inference state for each object
-            self._sam_predictor.reset_state(inference_state)
-            frame_number = obj_details['frame']
-            class_id = obj_id
+        # for obj_id, obj_details in object_id_map.items():
+        #     # Reset the inference state for each object
+        #     self._sam_predictor.reset_state(inference_state)
+        #     # Remove .png extension from the frame name
+        #     frame_number = int(obj_details['frame'][:-4])
+        #     frame_path = os.path.join(self._frames_path, video_id, obj_details['frame'])
+        #     bbox = obj_details['bbox']
+        #
+        #     _, out_obj_ids, out_mask_logits = self._sam_predictor.add_new_points_or_box(
+        #         inference_state=inference_state,
+        #         frame_idx=frame_number,
+        #         obj_id=obj_id,
+        #         box=bbox,
+        #     )
+        #
+        #     # show the results on the current (interacted) frame
+        #     plt.figure(figsize=(9, 6))
+        #     plt.title(f"frame {frame_path}")
+        #     plt.imshow(Image.open(frame_path))
+        #     self.show_box(bbox.reshape(-1), plt.gca())
+        #     self.show_mask((out_mask_logits[0] > 0.0).cpu().numpy(), plt.gca(), obj_id=out_obj_ids[0])
+        #     plt.savefig(f"output_{video_id}_{obj_id}_{frame_number}.png")
 
-            frame_path = os.path.join(video_dir, frame_number)
+        for obj_id, obj_details in object_id_map.items():
+            self._sam_predictor.reset_state(inference_state)
+            # Remove .png extension from the frame name
+            frame_number = int(obj_details['frame'][:-4])
+            bbox = obj_details['bbox']
+
+            _, out_obj_ids, out_mask_logits = self._sam_predictor.add_new_points_or_box(
+                inference_state=inference_state,
+                frame_idx=frame_number,
+                obj_id=obj_id,
+                box=bbox,
+            )
+
+            video_segments = {}  # video_segments contains the per-frame segmentation results
+            for out_frame_idx, out_obj_ids, out_mask_logits in self._sam_predictor.propagate_in_video(inference_state):
+                video_segments[out_frame_idx] = {
+                    out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                    for i, out_obj_id in enumerate(out_obj_ids)
+                }
+
+            # render the segmentation results every few frames
+            plt.close("all")
+            for out_frame_idx in list(video_segments.keys()):
+                plt.figure(figsize=(6, 4))
+                plt.title(f"frame {out_frame_idx}")
+                out_frame_name = "%06d.png" % out_frame_idx
+                frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
+                plt.imshow(Image.open(frame_path))
+                for out_obj_id, out_mask in video_segments[out_frame_idx].items():
+                    self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+                plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
 
 
         return frame_names
@@ -291,7 +338,7 @@ def main(mode):
 
     for i, data in enumerate(dataloader_train):
         print(data)
-        break
+        # break
 
 
 if __name__ == '__main__':

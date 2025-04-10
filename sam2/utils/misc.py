@@ -185,16 +185,7 @@ def load_video_frames(
     is_bytes = isinstance(video_path, bytes)
     is_str = isinstance(video_path, str)
     is_mp4_path = is_str and os.path.splitext(video_path)[-1] in [".mp4", ".MP4"]
-    if is_bytes or is_mp4_path:
-        return load_video_frames_from_video_file(
-            video_path=video_path,
-            image_size=image_size,
-            offload_video_to_cpu=offload_video_to_cpu,
-            img_mean=img_mean,
-            img_std=img_std,
-            compute_device=compute_device,
-        )
-    elif is_str and os.path.isdir(video_path):
+    if is_str and os.path.isdir(video_path):
         return load_video_frames_from_jpg_images(
             video_path=video_path,
             image_size=image_size,
@@ -202,6 +193,15 @@ def load_video_frames(
             img_mean=img_mean,
             img_std=img_std,
             async_loading_frames=async_loading_frames,
+            compute_device=compute_device,
+        )
+    elif is_bytes or is_mp4_path:
+        return load_video_frames_from_video_file(
+            video_path=video_path,
+            image_size=image_size,
+            offload_video_to_cpu=offload_video_to_cpu,
+            img_mean=img_mean,
+            img_std=img_std,
             compute_device=compute_device,
         )
     else:
