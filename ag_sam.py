@@ -325,6 +325,32 @@ class AgSam(Dataset):
             video_segments[obj_id] = video_object_segments
         return video_segments
 
+def load_pkl_data_test(data_path):
+    pkl_dir = f"{data_path}/segmentation/train/sgcls"
+    frames_path = f"{data_path}/frames"
+    pkl_files = os.listdir(pkl_dir)
+
+    for pkl_file in pkl_files:
+        video_id_dir = f"{pkl_file[:-4]}.mp4"
+
+        # Load the data in the pkl file
+        with open(os.path.join(pkl_dir, pkl_file), 'rb') as f:
+            video_segments = pickle.load(f)
+
+        # Overlay the segmentation mask on the frames of the video
+        obj_id = 11
+        video_object_segments = video_segments[obj_id]
+        for out_frame_idx in list(video_object_segments.keys()):
+            plt.figure(figsize=(6, 4))
+            plt.title(f"frame {out_frame_idx}")
+            out_frame_name = "%06d.png" % out_frame_idx
+            frame_path = os.path.join(frames_path, video_id_dir, out_frame_name)
+            plt.imshow(Image.open(frame_path))
+            for out_obj_id, out_mask in video_object_segments[out_frame_idx].items():
+                AgSam.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+            plt.savefig(f"output/output_{video_id_dir}_{obj_id}_{out_frame_idx}.png")
+            plt.close()
+
 
 def cuda_collate_fn(batch):
     """
@@ -482,9 +508,9 @@ if __name__ == '__main__':
 
 
 
-
+#
 # if __name__ == '__main__':
-#     get_content_list()
+#     load_pkl_data_test("/data/rohith/ag/")
 
 
 
