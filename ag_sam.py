@@ -17,6 +17,7 @@ class AgSam(Dataset):
             phase,
             mode,
             datasize,
+            split,
             data_path,
             filter_nonperson_box_frame=True,
             filter_small_box=False
@@ -25,6 +26,7 @@ class AgSam(Dataset):
         root_path = data_path
         self._phase = phase
         self._mode = mode
+        self._split = split
         self._datasize = datasize
         self._data_path = data_path
         self._frames_path = os.path.join(root_path, "frames")
@@ -48,6 +50,21 @@ class AgSam(Dataset):
 
         self._device = torch.device("cuda")
         self._sam_predictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self._device)
+
+        self.processed_list = [
+            'XZ9C0', '9A90E', '2LCLG', '4SW5W', 'RK4U5', 'ORD96', 'UGQD0', '0S9KN', 'TCQ97', '0CFQV',
+            '5EDX4', '5G9SV', 'WDCGH', 'VKDLS', '9VW14', 'YUOQW', 'SWYUO', 'J39ZC', 'MSW4E', '3SKPS', 'ICL1M',
+            'DQGYG', 'X4YHQ', 'U6L1X', '7FTBS', '5F1AW', 'Y2TNP', 'H1GWM', '71QKB', 'KXIMH', '1IJ7V', 'BI86J',
+            'V9RT3', 'M0DAY', 'FW5KJ', 'CDNV7', 'U0ACD', 'TCM46', 'DSG0F', 'M7Y6V', 'DGPUE', 'P4WRI', 'GIIMN',
+            'TQ9GQ', 'STB0G', 'WV9FZ', 'HXQ55', 'S6RYI', 'UGMJZ', '1Z5FK', '8Z9GW', 'WA7WD', 'UB2EJ', 'C93HZ',
+            'CPZI6', '2JWHI', 'FU5BL', 'Q8UJ8', 'U3OJV', '7OPHI', 'QB8O7', 'AVJFE', '119W9', 'OS7VW', '2T4AO',
+            'JBZF5', '1Y5H7', '69GFN', '2KAWJ', '6SS4H', '0POYO', 'D69VI', 'BT1WN', '7P5R2', 'UDF8X', '1U9TF',
+            'IHGNV', 'IU2XH', 'GGAN0', '37SE6', 'XE4FF', 'U6KQ7', 'R3O7U', 'SAJ4D', 'F8UU2', '6I0IH', 'Z9B4Y',
+            'WREDC', '47D1Y', 'OKVGK', 'OSJW7', 'MS58Y', 'JMA1R', 'XZ2QQ', 'M40WF', 'FDU31', 'UUX4G', 'F8M2Y',
+            'XP305', 'K4LQP', '9SIZS', 'GK6GN', '55MRE', 'NVDEM', 'VYNEU', 'IA5TC', 'TUTOD', '73E7V', '7P0HA',
+            'XJU8U', '27SS2', 'CZ0MP', 'MWAGL', 'MJVDK', 'FLQ59', '7ELBG', 'K197X', '3SAO5', '88TGX', '3WD4E',
+            'C9ISQ', '3MWAY', 'YDLBN', 'XDRZ7', 'X1KKZ', 'S1XW9', 'OE751', 'OM66H', 'R9382', 'HURN7', 'SPUPH',
+            'NJZR7', 'YX0YS']
 
     @staticmethod
     def show_mask(mask, ax, obj_id=None, random_color=False):
@@ -199,9 +216,32 @@ class AgSam(Dataset):
 
         self.invalid_video_names = np.setdiff1d(all_video_names, self._valid_video_names, assume_unique=False)
 
-
     def __len__(self):
         return len(self._video_list)
+
+    @staticmethod
+    def get_video_belongs_to_split(self, video_id):
+        """
+        Get the split that the video belongs to based on its ID.
+        """
+        first_letter = video_id[0]
+        if first_letter.isdigit() and int(first_letter) < 5:
+            return "04"
+        elif first_letter.isdigit() and int(first_letter) >= 5:
+            return "59"
+        elif first_letter in "ABCD":
+            return "AD"
+        elif first_letter in "EFGH":
+            return "EH"
+        elif first_letter in "IJKL":
+            return "IL"
+        elif first_letter in "MNOP":
+            return "MP"
+        elif first_letter in "QRST":
+            return "QT"
+        elif first_letter in "UVWXYZ":
+            return "UZ"
+
 
     def __getitem__(self, index):
         frame_names = self._video_list[index]
@@ -209,6 +249,16 @@ class AgSam(Dataset):
 
         # 1. Create a map of object-id and the first frame it appears in the video.
         video_id = frame_names[0].split('/')[0]
+
+        # 1a. Filter out this video if its not part of the split
+        required_split = self.get_video_belongs_to_split(video_id)
+        if required_split != self._split:
+            return None
+
+        # 1b. Filter out already processed list of videos
+        if video_id[:-4] in self.processed_list:
+            return None
+
         object_id_map = {}
         for i, frame_details_dict in enumerate(gt_annotation_frame):
             # Add the person bbox information from the first frame
@@ -234,31 +284,9 @@ class AgSam(Dataset):
         inference_state = self._sam_predictor.init_state(video_path=video_dir)
 
         # b. Run SAMv2 for each object
-        # for obj_id, obj_details in object_id_map.items():
-        #     # Reset the inference state for each object
-        #     self._sam_predictor.reset_state(inference_state)
-        #     # Remove .png extension from the frame name
-        #     frame_number = int(obj_details['frame'][:-4])
-        #     frame_path = os.path.join(self._frames_path, video_id, obj_details['frame'])
-        #     bbox = obj_details['bbox']
-        #
-        #     _, out_obj_ids, out_mask_logits = self._sam_predictor.add_new_points_or_box(
-        #         inference_state=inference_state,
-        #         frame_idx=frame_number,
-        #         obj_id=obj_id,
-        #         box=bbox,
-        #     )
-        #
-        #     # show the results on the current (interacted) frame
-        #     plt.figure(figsize=(9, 6))
-        #     plt.title(f"frame {frame_path}")
-        #     plt.imshow(Image.open(frame_path))
-        #     self.show_box(bbox.reshape(-1), plt.gca())
-        #     self.show_mask((out_mask_logits[0] > 0.0).cpu().numpy(), plt.gca(), obj_id=out_obj_ids[0])
-        #     plt.savefig(f"output_{video_id}_{obj_id}_{frame_number}.png")
-
         video_segments = {"video_id": video_id[:-4]}  # video_segments contains the per-frame segmentation results
         for obj_id, obj_details in object_id_map.items():
+            print(f"Processing object {obj_id} in video {video_id}")
             self._sam_predictor.reset_state(inference_state)
             # Remove .png extension from the frame name
             frame_number = int(obj_details['frame'][:-4])
@@ -279,19 +307,6 @@ class AgSam(Dataset):
                 }
 
             video_segments[obj_id] = video_object_segments
-
-            # render the segmentation results every few frames
-            # plt.close("all")
-            # for out_frame_idx in list(video_object_segments.keys()):
-            #     plt.figure(figsize=(6, 4))
-            #     plt.title(f"frame {out_frame_idx}")
-            #     out_frame_name = "%06d.png" % out_frame_idx
-            #     frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
-            #     plt.imshow(Image.open(frame_path))
-            #     for out_obj_id, out_mask in video_object_segments[out_frame_idx].items():
-            #         self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
-            #     plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
-
         return video_segments
 
 
@@ -313,23 +328,28 @@ def save_dict_to_pkl(dictionary, file_path):
     with open(file_path, 'wb') as file:
         pickle.dump(dictionary, file)
 
-def process_data(phase, mode, dataloader, dataset):
-    file_directory_path = f"/data/rohith/ag/segmentation/{phase}/{mode}"
+def process_data(phase, mode, dataloader, data_path):
+    file_directory_path = f"{data_path}/segmentation/{phase}/{mode}"
     if not os.path.exists(file_directory_path):
         os.makedirs(file_directory_path)
 
     for i, video_segments in enumerate(tqdm(dataloader, desc="Training Progress")):
+
+        if video_segments is None:
+            print("Skipping video as it is not part of the split or already processed.")
+            continue
+
         video_id = video_segments["video_id"]
         file_path = os.path.join(file_directory_path, f"{video_id}.pkl")
         save_dict_to_pkl(video_segments, file_path)
 
-
-def main(mode):
+def main(mode, split, data_path):
     train_dataset = AgSam(
         phase="train",
         mode=mode,
         datasize="large",
-        data_path="/data/rohith/ag/",
+        split=split,
+        data_path=data_path,
         filter_nonperson_box_frame=True,
         filter_small_box=False if mode == 'predcls' else True
     )
@@ -338,7 +358,8 @@ def main(mode):
         phase="test",
         mode=mode,
         datasize="large",
-        data_path="/data/rohith/ag/",
+        data_path=data_path,
+        split=split,
         filter_nonperson_box_frame=True,
         filter_small_box=False if mode == 'predcls' else True
     )
@@ -362,16 +383,93 @@ def main(mode):
     print("-----------------------------------------------------------------------")
     print(f"Processing Train - {mode} dataset")
     print("-----------------------------------------------------------------------")
-    process_data("train", mode, dataloader_train, train_dataset)
+    process_data(
+        phase="train",
+        mode=mode,
+        dataloader=dataloader_train,
+        data_path=data_path
+    )
 
     # Test - Mode
     print("-----------------------------------------------------------------------")
     print(f"Processing Test - {mode} dataset")
     print("-----------------------------------------------------------------------")
-    process_data("test", mode, dataloader_test, test_dataset)
+    process_data(
+        phase="test",
+        mode=mode,
+        dataloader=dataloader_test,
+        data_path=data_path
+    )
 
 
 if __name__ == '__main__':
-    main(const.PREDCLS)
-    main(const.SGCLS)
+    import argparse
+    parser = argparse.ArgumentParser(description="AG-SAM2 Video Segmentation")
+    parser.add_argument("--mode", type=str, choices=["predcls", "sgcls"], help="Mode to run the script in")
+    parser.add_argument("--split", type=str, choices=["04", "59", "AD", "EH", "IL", "MP", "QT", "UZ"], help="Phase to run the script in")
+    parser.add_argument("--datapath", type=str, default="/data/rohith/ag/", help="Path to the data")
+
+    args = parser.parse_args()
+    main(args.mode, args.split, args.datapath)
+
+
+# def get_content_list():
+#     directory = "/data/rohith/ag/segmentation/train/predcls"
+#     files = os.listdir(directory)
+#     content_list = []
+#     for file in files:
+#         if file.endswith(".pkl"):
+#             content_list.append(file[:-4])
+#
+#     print(content_list)
+#
+
+# def get_content_list():
+#     directory = "/data/rohith/ag/videos"
+#     files = os.listdir(directory)
+#
+#     # Create a map of first letter of the video id and the number of videos with that letter
+#     # This will help in dividing the videos into 10 groups to split the processing time.
+#
+#     content_map = {}
+#     for file in files:
+#         if file.endswith(".mp4"):
+#             first_letter = file[0]
+#
+#             if first_letter.isdigit() and int(first_letter) < 5:
+#                 first_letter = "0-4"
+#             elif first_letter.isdigit() and int(first_letter) >= 5:
+#                 first_letter = "5-9"
+#             elif first_letter in "ABCD":
+#                 first_letter = "A-D"
+#             elif first_letter in "EFGH":
+#                 first_letter = "E-H"
+#             elif first_letter in "IJKL":
+#                 first_letter = "I-L"
+#             elif first_letter in "MNOP":
+#                 first_letter = "M-P"
+#             elif first_letter in "QRST":
+#                 first_letter = "Q-T"
+#             elif first_letter in "UVWXYZ":
+#                 first_letter = "U-Z"
+#
+#             if first_letter not in content_map:
+#                 content_map[first_letter] = 1
+#             else:
+#                 content_map[first_letter] += 1
+#
+#     # Print the content map
+#     print("Content Map:")
+#     for letter, count in content_map.items():
+#         print(f"{letter}: {count} videos")
+
+
+
+
+
+
+# if __name__ == '__main__':
+#     get_content_list()
+
+
 
