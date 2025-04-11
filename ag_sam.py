@@ -220,7 +220,7 @@ class AgSam(Dataset):
         return len(self._video_list)
 
     @staticmethod
-    def get_video_belongs_to_split(self, video_id):
+    def get_video_belongs_to_split(video_id):
         """
         Get the split that the video belongs to based on its ID.
         """
@@ -301,10 +301,26 @@ class AgSam(Dataset):
 
             video_object_segments = {}  # video_object_segments contains the per-frame segmentation results
             for out_frame_idx, out_obj_ids, out_mask_logits in self._sam_predictor.propagate_in_video(inference_state):
+
+                # if out_obj_ids[0] == -1:
+                #     print(out_obj_ids)
+                #     continue
+
                 video_object_segments[out_frame_idx] = {
                     out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
                     for i, out_obj_id in enumerate(out_obj_ids)
                 }
+
+                # for out_frame_idx in list(video_object_segments.keys()):
+                #     plt.figure(figsize=(6, 4))
+                #     plt.title(f"frame {out_frame_idx}")
+                #     out_frame_name = "%06d.png" % out_frame_idx
+                #     frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
+                #     plt.imshow(Image.open(frame_path))
+                #     for out_obj_id, out_mask in video_object_segments[out_frame_idx].items():
+                #         self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+                #     plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
+                #     plt.close()
 
             video_segments[obj_id] = video_object_segments
         return video_segments
@@ -400,7 +416,6 @@ def main(mode, split, data_path):
         dataloader=dataloader_test,
         data_path=data_path
     )
-
 
 if __name__ == '__main__':
     import argparse
