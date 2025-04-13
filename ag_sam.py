@@ -246,6 +246,7 @@ class AgSam(Dataset):
     def __getitem__(self, index):
         frame_names = self._video_list[index]
         gt_annotation_frame = self._gt_annotations[index]
+        file_directory_path = f"{self._data_path}/segmentation/{self._phase}/{self._mode}"
 
         # 1. Create a map of object-id and the first frame it appears in the video.
         video_id = frame_names[0].split('/')[0]
@@ -257,6 +258,13 @@ class AgSam(Dataset):
 
         # 1b. Filter out already processed list of videos
         if video_id[:-4] in self.processed_list:
+            return None
+
+        # 1c. Check if the pkl is already created
+        video_pkl_file_path = os.path.join(file_directory_path, f"{video_id[:-4]}.pkl")
+        print(f"Processing video {video_pkl_file_path} with {len(frame_names)} frames")
+        if os.path.exists(video_pkl_file_path):
+            print(f"Video {video_id} already processed. Skipping...")
             return None
 
         object_id_map = {}
