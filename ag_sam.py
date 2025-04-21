@@ -10,6 +10,7 @@ from tqdm import tqdm
 from constants import Constants as const
 from sam2.build_sam import build_sam2_video_predictor
 
+
 class AgSam(Dataset):
 
     def __init__(
@@ -51,7 +52,44 @@ class AgSam(Dataset):
         self._device = torch.device("cuda")
         self._sam_predictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self._device)
 
-        self.processed_list = ['XZ9C0', '9A90E', '2LCLG', '4SW5W', 'RK4U5', 'ORD96', 'UGQD0', '0S9KN', 'TCQ97', '0CFQV', '5EDX4', '5G9SV', 'WDCGH', 'VKDLS', '9VW14', 'YUOQW', 'SWYUO', 'J39ZC', 'MSW4E', '3SKPS', 'ICL1M', 'DQGYG', 'X4YHQ', 'U6L1X', '7FTBS', '5F1AW', 'Y2TNP', 'H1GWM', '71QKB', 'KXIMH', '1IJ7V', 'BI86J', 'V9RT3', 'M0DAY', 'FW5KJ', 'CDNV7', 'U0ACD', 'TCM46', 'DSG0F', 'M7Y6V', 'DGPUE', 'P4WRI', 'GIIMN', 'TQ9GQ', 'STB0G', 'WV9FZ', 'HXQ55', 'S6RYI', 'UGMJZ', '1Z5FK', '8Z9GW', 'WA7WD', 'UB2EJ', 'C93HZ', 'CPZI6', '2JWHI', 'FU5BL', 'Q8UJ8', 'U3OJV', '7OPHI', 'QB8O7', 'AVJFE', '119W9', 'OS7VW', '2T4AO', 'JBZF5', '1Y5H7', '69GFN', '2KAWJ', '6SS4H', '0POYO', 'D69VI', 'BT1WN', '7P5R2', 'UDF8X', '1U9TF', 'IHGNV', 'IU2XH', 'GGAN0', '37SE6', 'XE4FF', 'U6KQ7', 'R3O7U', 'SAJ4D', 'F8UU2', '6I0IH', 'Z9B4Y', 'WREDC', '47D1Y', 'OKVGK', 'OSJW7', 'MS58Y', 'JMA1R', 'XZ2QQ', 'M40WF', 'FDU31', 'UUX4G', 'F8M2Y', 'XP305', 'K4LQP', '9SIZS', 'GK6GN', '55MRE', 'NVDEM', 'VYNEU', 'IA5TC', 'TUTOD', '73E7V', '7P0HA', 'XJU8U', '27SS2', 'CZ0MP', 'MWAGL', 'MJVDK', 'FLQ59', '7ELBG', 'K197X', '3SAO5', '88TGX', '3WD4E', 'C9ISQ', '3MWAY', 'YDLBN', 'XDRZ7', 'X1KKZ', 'S1XW9', 'OE751', 'OM66H', 'R9382', 'HURN7', 'SPUPH', 'NJZR7', 'YX0YS', '2K755', '170OQ', '004QE', '0KER3', '09F15', '1NNFV', '4986V', '4VYE5', '4ATDB', '4P13T', '2HEUO', '3WAWR', '1AR0K', '42MC3', '1H6PS', '3YGOV', '1EX1G', '1TGKL', '1W28T', '300LS', '2MURI', '0JHMW', '3CTZL', '18CTK', '1RB92', '03OQS', '038WZ', '3UZ88', '0CGMQ', '2ZBL5', '0VKEE', '0V4B3', '3GNH7', '330ZE', '3KZF7', '372CC', '1MZJF', '40NIM', '10ND1', '2JT00', '4LDRK', '4878H', '4FXUI', '2Z0LU', '1ZAN8', '3VMTS', '0BZAD', '1YAYG', '1JYPW', '4UR1F', '2FH2V', '1IIS5', '3LFV6', '0CX32', '3LLXX', '1SCZE', '0C5IQ', '2RJF6', '2BFZG', '2BS0V', '19PNV', '472B0', '4Y1AW', '0I1S5', '13IOT', '201W8', '1TW98', '2XJG9', '3GA59', '4DAGZ', '0UFI4', '17AZ5', '0ZUMU', '1THHL', '0QA8P', '3OQ8M', '4FAWP', '02GMI', '3DNW1', '01KM1', '08QQS', '38I4G', '29757', '0WGTG', '2XG25', '0QMGP', '38BDO', '4VODV', '2GF6R', '4AQZ2', '4BZI6', '3S6WL', '4X2JC', '2ODLD', '13YII', '4WMDU', '2GGH3', '16S3C', '0OUEP', '1RHDP', '03XSP', '48BUM', '1YBKW', '3XKBC', '4N5P9', '3VEJY', '0M2DO', '06L9P', '432NL', '2LTCY', '2XSK6', '35P3Q', '1W2NR', '4DZB6', '2FECZ', '12VVC', '1HHP1', '0NN7I', '2PREF', '2JTRG', '2OK9A', '2XT4N', '0O36O', '0W4F6', '03EW0', '3OUXT', '1KOZ4', '0K0LP', '3XM7Q', '03M0K', '3GY40', '0NM06', '1OVB8', '0RPJX', '11TTU', '24XDE', '2Z8HO', '0SK6H', '113YU', '23Y3I', '4ISIX', '0M1ZU', '1BPX5', '3CFFJ', '0X49F', '0HVVN', '1K4ZT', '2DPEC', '3U1SS', '14VCB', '0MDYC', '3MIWR', '3CAPI', '2JR26', '38TF8', '0O022', '0F0WE', '09KVK', '16CWY', '42E9I', '0FC0N', '0ISSH', '2CDOS', '0VQCH', '0EJAG', '3C9R2', '0IAGO', '1SVJS', '12QGZ', '0JXN3', '38NUC', '2DPW0', '3DO3W', '2NV6L', '41CZS', '0DBQD', '42K3H', '4HZ3B', '1ELWC', '19MUM', '4JXAK', '41EQS', '3W6CP', '0MFAM', '3BH39', '1HDAC', '1EJKT', '0EGNU', '34BYN', '1ZBUS', '4ZDSO', '1UXVA', '4O9A6', '3R95N', '2ECXI', '34DKM', '47532', '2WW04', '4YVE0', '0DAO5', '1SLTT', '2YK65', '3Z08H', '1L7XE', '320ZB', '327L5', '0F453', '3DO95', '4GDTQ', '0R4UI', '1JH1W', '4RVZB', '2O5NR', '40WPV', '0HD9F', '1NVWD', '0G2SC', '1ZB73', '2MJA1', '3OQ81', '2Q2LA', '2WGSN', '0Y19Q', '3JSX7', '1Q6M7', '22ROE', '3ZHEX', '1P97N', '1FA5M', '4G00A', '41FNM', '19ZGX', '2OY8R', '0GYRH', '4RLYA', '02V54', '3LM6H', '0OMFD', '1PB6T', '2D98B', '129SP', '0PA3N', '0BH84', '370X8', '3V2HJ', '1G2QC', '2CR02']
+        self.processed_list = ['XZ9C0', '9A90E', '2LCLG', '4SW5W', 'RK4U5', 'ORD96', 'UGQD0', '0S9KN', 'TCQ97', '0CFQV',
+                               '5EDX4', '5G9SV', 'WDCGH', 'VKDLS', '9VW14', 'YUOQW', 'SWYUO', 'J39ZC', 'MSW4E', '3SKPS',
+                               'ICL1M', 'DQGYG', 'X4YHQ', 'U6L1X', '7FTBS', '5F1AW', 'Y2TNP', 'H1GWM', '71QKB', 'KXIMH',
+                               '1IJ7V', 'BI86J', 'V9RT3', 'M0DAY', 'FW5KJ', 'CDNV7', 'U0ACD', 'TCM46', 'DSG0F', 'M7Y6V',
+                               'DGPUE', 'P4WRI', 'GIIMN', 'TQ9GQ', 'STB0G', 'WV9FZ', 'HXQ55', 'S6RYI', 'UGMJZ', '1Z5FK',
+                               '8Z9GW', 'WA7WD', 'UB2EJ', 'C93HZ', 'CPZI6', '2JWHI', 'FU5BL', 'Q8UJ8', 'U3OJV', '7OPHI',
+                               'QB8O7', 'AVJFE', '119W9', 'OS7VW', '2T4AO', 'JBZF5', '1Y5H7', '69GFN', '2KAWJ', '6SS4H',
+                               '0POYO', 'D69VI', 'BT1WN', '7P5R2', 'UDF8X', '1U9TF', 'IHGNV', 'IU2XH', 'GGAN0', '37SE6',
+                               'XE4FF', 'U6KQ7', 'R3O7U', 'SAJ4D', 'F8UU2', '6I0IH', 'Z9B4Y', 'WREDC', '47D1Y', 'OKVGK',
+                               'OSJW7', 'MS58Y', 'JMA1R', 'XZ2QQ', 'M40WF', 'FDU31', 'UUX4G', 'F8M2Y', 'XP305', 'K4LQP',
+                               '9SIZS', 'GK6GN', '55MRE', 'NVDEM', 'VYNEU', 'IA5TC', 'TUTOD', '73E7V', '7P0HA', 'XJU8U',
+                               '27SS2', 'CZ0MP', 'MWAGL', 'MJVDK', 'FLQ59', '7ELBG', 'K197X', '3SAO5', '88TGX', '3WD4E',
+                               'C9ISQ', '3MWAY', 'YDLBN', 'XDRZ7', 'X1KKZ', 'S1XW9', 'OE751', 'OM66H', 'R9382', 'HURN7',
+                               'SPUPH', 'NJZR7', 'YX0YS', '2K755', '170OQ', '004QE', '0KER3', '09F15', '1NNFV', '4986V',
+                               '4VYE5', '4ATDB', '4P13T', '2HEUO', '3WAWR', '1AR0K', '42MC3', '1H6PS', '3YGOV', '1EX1G',
+                               '1TGKL', '1W28T', '300LS', '2MURI', '0JHMW', '3CTZL', '18CTK', '1RB92', '03OQS', '038WZ',
+                               '3UZ88', '0CGMQ', '2ZBL5', '0VKEE', '0V4B3', '3GNH7', '330ZE', '3KZF7', '372CC', '1MZJF',
+                               '40NIM', '10ND1', '2JT00', '4LDRK', '4878H', '4FXUI', '2Z0LU', '1ZAN8', '3VMTS', '0BZAD',
+                               '1YAYG', '1JYPW', '4UR1F', '2FH2V', '1IIS5', '3LFV6', '0CX32', '3LLXX', '1SCZE', '0C5IQ',
+                               '2RJF6', '2BFZG', '2BS0V', '19PNV', '472B0', '4Y1AW', '0I1S5', '13IOT', '201W8', '1TW98',
+                               '2XJG9', '3GA59', '4DAGZ', '0UFI4', '17AZ5', '0ZUMU', '1THHL', '0QA8P', '3OQ8M', '4FAWP',
+                               '02GMI', '3DNW1', '01KM1', '08QQS', '38I4G', '29757', '0WGTG', '2XG25', '0QMGP', '38BDO',
+                               '4VODV', '2GF6R', '4AQZ2', '4BZI6', '3S6WL', '4X2JC', '2ODLD', '13YII', '4WMDU', '2GGH3',
+                               '16S3C', '0OUEP', '1RHDP', '03XSP', '48BUM', '1YBKW', '3XKBC', '4N5P9', '3VEJY', '0M2DO',
+                               '06L9P', '432NL', '2LTCY', '2XSK6', '35P3Q', '1W2NR', '4DZB6', '2FECZ', '12VVC', '1HHP1',
+                               '0NN7I', '2PREF', '2JTRG', '2OK9A', '2XT4N', '0O36O', '0W4F6', '03EW0', '3OUXT', '1KOZ4',
+                               '0K0LP', '3XM7Q', '03M0K', '3GY40', '0NM06', '1OVB8', '0RPJX', '11TTU', '24XDE', '2Z8HO',
+                               '0SK6H', '113YU', '23Y3I', '4ISIX', '0M1ZU', '1BPX5', '3CFFJ', '0X49F', '0HVVN', '1K4ZT',
+                               '2DPEC', '3U1SS', '14VCB', '0MDYC', '3MIWR', '3CAPI', '2JR26', '38TF8', '0O022', '0F0WE',
+                               '09KVK', '16CWY', '42E9I', '0FC0N', '0ISSH', '2CDOS', '0VQCH', '0EJAG', '3C9R2', '0IAGO',
+                               '1SVJS', '12QGZ', '0JXN3', '38NUC', '2DPW0', '3DO3W', '2NV6L', '41CZS', '0DBQD', '42K3H',
+                               '4HZ3B', '1ELWC', '19MUM', '4JXAK', '41EQS', '3W6CP', '0MFAM', '3BH39', '1HDAC', '1EJKT',
+                               '0EGNU', '34BYN', '1ZBUS', '4ZDSO', '1UXVA', '4O9A6', '3R95N', '2ECXI', '34DKM', '47532',
+                               '2WW04', '4YVE0', '0DAO5', '1SLTT', '2YK65', '3Z08H', '1L7XE', '320ZB', '327L5', '0F453',
+                               '3DO95', '4GDTQ', '0R4UI', '1JH1W', '4RVZB', '2O5NR', '40WPV', '0HD9F', '1NVWD', '0G2SC',
+                               '1ZB73', '2MJA1', '3OQ81', '2Q2LA', '2WGSN', '0Y19Q', '3JSX7', '1Q6M7', '22ROE', '3ZHEX',
+                               '1P97N', '1FA5M', '4G00A', '41FNM', '19ZGX', '2OY8R', '0GYRH', '4RLYA', '02V54', '3LM6H',
+                               '0OMFD', '1PB6T', '2D98B', '129SP', '0PA3N', '0BH84', '370X8', '3V2HJ', '1G2QC', '2CR02']
 
     @staticmethod
     def show_mask(mask, ax, obj_id=None, random_color=False):
@@ -100,7 +138,8 @@ class AgSam(Dataset):
             with open(os.path.join(annotations_path, const.PERSON_BOUNDING_BOX_PKL), 'rb') as f:
                 person_bbox = pickle.load(f)
             f.close()
-            with open(os.path.join(annotations_path, const.OBJECT_BOUNDING_BOX_RELATIONSHIP_FILTERSMALL_PKL), 'rb') as f:
+            with open(os.path.join(annotations_path, const.OBJECT_BOUNDING_BOX_RELATIONSHIP_FILTERSMALL_PKL),
+                      'rb') as f:
                 object_bbox = pickle.load(f)
         else:
             with open(os.path.join(annotations_path, const.PERSON_BOUNDING_BOX_PKL), 'rb') as f:
@@ -229,7 +268,6 @@ class AgSam(Dataset):
         elif first_letter in "UVWXYZ":
             return "UZ"
 
-
     def __getitem__(self, index):
         frame_names = self._video_list[index]
         gt_annotation_frame = self._gt_annotations[index]
@@ -296,7 +334,6 @@ class AgSam(Dataset):
 
             video_object_segments = {}  # video_object_segments contains the per-frame segmentation results
             for out_frame_idx, out_obj_ids, out_mask_logits in self._sam_predictor.propagate_in_video(inference_state):
-
                 # if out_obj_ids[0] == -1:
                 #     print(out_obj_ids)
                 #     continue
@@ -319,6 +356,7 @@ class AgSam(Dataset):
 
             video_segments[obj_id] = video_object_segments
         return video_segments
+
 
 def load_pkl_data_test(data_path):
     pkl_dir = f"{data_path}/segmentation/train/sgcls"
@@ -365,6 +403,7 @@ def save_dict_to_pkl(dictionary, file_path):
     with open(file_path, 'wb') as file:
         pickle.dump(dictionary, file)
 
+
 def process_data(phase, mode, dataloader, data_path):
     file_directory_path = f"{data_path}/segmentation/{phase}/{mode}"
     if not os.path.exists(file_directory_path):
@@ -379,6 +418,7 @@ def process_data(phase, mode, dataloader, data_path):
         video_id = video_segments["video_id"]
         file_path = os.path.join(file_directory_path, f"{video_id}.pkl")
         save_dict_to_pkl(video_segments, file_path)
+
 
 def main(mode, split, data_path):
     train_dataset = AgSam(
@@ -438,16 +478,18 @@ def main(mode, split, data_path):
         data_path=data_path
     )
 
+
 if __name__ == '__main__':
     import argparse
+
     parser = argparse.ArgumentParser(description="AG-SAM2 Video Segmentation")
     parser.add_argument("--mode", type=str, choices=["predcls", "sgcls"], help="Mode to run the script in")
-    parser.add_argument("--split", type=str, choices=["04", "59", "AD", "EH", "IL", "MP", "QT", "UZ"], help="Phase to run the script in")
+    parser.add_argument("--split", type=str, choices=["04", "59", "AD", "EH", "IL", "MP", "QT", "UZ"],
+                        help="Phase to run the script in")
     parser.add_argument("--datapath", type=str, default="/data/rohith/ag/", help="Path to the data")
 
     args = parser.parse_args()
     main(args.mode, args.split, args.datapath)
-
 
 # def get_content_list():
 #     directory = "/data/rohith/ag/segmentation/train/predcls"
