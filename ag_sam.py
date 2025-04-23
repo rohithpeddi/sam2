@@ -451,7 +451,7 @@ def main(mode, split, data_path):
 
     dataloader_test = DataLoader(
         test_dataset,
-        shuffle=False,
+        shuffle=True,
         collate_fn=cuda_collate_fn,
         pin_memory=False
     )
