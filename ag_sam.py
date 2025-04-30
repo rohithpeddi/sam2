@@ -1,3 +1,4 @@
+import gc
 import os
 import pickle
 import torch
@@ -311,51 +312,60 @@ class AgSam(Dataset):
         # 2. Sort the object-id map based on the frame number
         object_id_map = dict(sorted(object_id_map.items(), key=lambda item: item[1]['frame']))
 
-        # 3. Use SAMv2 for each object individually and get the mask starting from the first frame it appears in the video using the bbox provided.
-        # a. Prepare the input for SAMv2
-        video_dir = os.path.join("/data/rohith/ag/videos", video_id)
-        inference_state = self._sam_predictor.init_state(video_path=video_dir)
+        try:
+            # 3. Use SAMv2 for each object individually and get the mask starting from the first frame it appears in the video using the bbox provided.
+            # a. Prepare the input for SAMv2
+            video_dir = os.path.join("/data/rohith/ag/videos", video_id)
+            inference_state = self._sam_predictor.init_state(video_path=video_dir)
 
-        # b. Run SAMv2 for each object
-        video_segments = {"video_id": video_id[:-4]}  # video_segments contains the per-frame segmentation results
-        for obj_id, obj_details in object_id_map.items():
-            print(f"Processing object {obj_id} in video {video_id}")
-            self._sam_predictor.reset_state(inference_state)
-            # Remove .png extension from the frame name
-            frame_number = int(obj_details['frame'][:-4])
-            bbox = obj_details['bbox']
+            # b. Run SAMv2 for each object
+            video_segments = {"video_id": video_id[:-4]}  # video_segments contains the per-frame segmentation results
+            for obj_id, obj_details in object_id_map.items():
+                print(f"Processing object {obj_id} in video {video_id}")
+                self._sam_predictor.reset_state(inference_state)
+                # Remove .png extension from the frame name
+                frame_number = int(obj_details['frame'][:-4])
+                bbox = obj_details['bbox']
 
-            _, out_obj_ids, out_mask_logits = self._sam_predictor.add_new_points_or_box(
-                inference_state=inference_state,
-                frame_idx=frame_number,
-                obj_id=obj_id,
-                box=bbox,
-            )
+                _, out_obj_ids, out_mask_logits = self._sam_predictor.add_new_points_or_box(
+                    inference_state=inference_state,
+                    frame_idx=frame_number,
+                    obj_id=obj_id,
+                    box=bbox,
+                )
 
-            video_object_segments = {}  # video_object_segments contains the per-frame segmentation results
-            for out_frame_idx, out_obj_ids, out_mask_logits in self._sam_predictor.propagate_in_video(inference_state):
-                # if out_obj_ids[0] == -1:
-                #     print(out_obj_ids)
-                #     continue
+                video_object_segments = {}  # video_object_segments contains the per-frame segmentation results
+                for out_frame_idx, out_obj_ids, out_mask_logits in self._sam_predictor.propagate_in_video(inference_state):
+                    # if out_obj_ids[0] == -1:
+                    #     print(out_obj_ids)
+                    #     continue
 
-                video_object_segments[out_frame_idx] = {
-                    out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
-                    for i, out_obj_id in enumerate(out_obj_ids)
-                }
+                    video_object_segments[out_frame_idx] = {
+                        out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                        for i, out_obj_id in enumerate(out_obj_ids)
+                    }
 
-                # for out_frame_idx in list(video_object_segments.keys()):
-                #     plt.figure(figsize=(6, 4))
-                #     plt.title(f"frame {out_frame_idx}")
-                #     out_frame_name = "%06d.png" % out_frame_idx
-                #     frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
-                #     plt.imshow(Image.open(frame_path))
-                #     for out_obj_id, out_mask in video_object_segments[out_frame_idx].items():
-                #         self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
-                #     plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
-                #     plt.close()
+                    # for out_frame_idx in list(video_object_segments.keys()):
+                    #     plt.figure(figsize=(6, 4))
+                    #     plt.title(f"frame {out_frame_idx}")
+                    #     out_frame_name = "%06d.png" % out_frame_idx
+                    #     frame_path = os.path.join(self._frames_path, video_id, out_frame_name)
+                    #     plt.imshow(Image.open(frame_path))
+                    #     for out_obj_id, out_mask in video_object_segments[out_frame_idx].items():
+                    #         self.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+                    #     plt.savefig(f"output_{video_id}_{obj_id}_{out_frame_idx}.png")
+                    #     plt.close()
 
-            video_segments[obj_id] = video_object_segments
-        return video_segments
+                video_segments[obj_id] = video_object_segments
+            return video_segments
+        except RuntimeError as e:
+            if "CUDA out of memory" in str(e):
+                print(f"Got CUDA OOM error for video {video_id}. Skipping this video.")
+                torch.cuda.empty_cache()
+                gc.collect()
+                return -1
+            else:
+                raise e
 
 
 def load_pkl_data_test(data_path):
@@ -410,6 +420,10 @@ def process_data(phase, mode, dataloader, data_path):
         os.makedirs(file_directory_path)
 
     for i, video_segments in enumerate(tqdm(dataloader, desc="Training Progress")):
+
+        if video_segments == -1:
+            print("Got CUDA OOM error and exited processing item.")
+            continue
 
         if video_segments is None:
             print("Skipping video as it is not part of the split or already processed.")
