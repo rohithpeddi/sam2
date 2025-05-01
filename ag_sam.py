@@ -315,8 +315,15 @@ class AgSam(Dataset):
         try:
             # 3. Use SAMv2 for each object individually and get the mask starting from the first frame it appears in the video using the bbox provided.
             # a. Prepare the input for SAMv2
-            video_dir = os.path.join("/data/rohith/ag/videos", video_id)
-            inference_state = self._sam_predictor.init_state(video_path=video_dir)
+            video_file = os.path.join(self._data_path, "videos", video_id)
+
+            # Check the length of the video, if it is greater than 75seconds, skip the video
+            video_frames_dir = os.path.join(self._frames_path, video_id[:-4])
+            if len(os.listdir(video_frames_dir)) > 75 * 30:
+                print(f"Skipping video {video_id} as it is too long.")
+                return None
+
+            inference_state = self._sam_predictor.init_state(video_path=video_file)
 
             # b. Run SAMv2 for each object
             video_segments = {"video_id": video_id[:-4]}  # video_segments contains the per-frame segmentation results
